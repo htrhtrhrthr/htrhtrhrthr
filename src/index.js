@@ -1,46 +1,59 @@
 export default {
   async fetch(request, env, ctx) {
     const url =
-      "https://shop.funbox.com.tw/category_products/takaratomy/beyblade.json?limit=18&page=1&sort_by=sell_from-desc";
+      "https://shop.funbox.com.tw/categories/takaratomy/beyblade";
 
     try {
       const response = await fetch(url, {
+        redirect: "follow",
         headers: {
-          "Accept": "application/json"
+          "Accept": "text/html,application/xhtml+xml"
         }
       });
 
-      const text = await response.text();
+      const html = await response.text();
 
-      let data;
+      const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
 
-      try {
-        data = JSON.parse(text);
-      } catch {
-        return Response.json({
-          ok: false,
-          status: response.status,
-          error: "Funbox 回傳的不是 JSON",
-          preview: text.slice(0, 1000)
-        });
-      }
-
-      const result = {
-        ok: response.ok,
-        status: response.status,
-        topLevelType: Array.isArray(data) ? "array" : typeof data,
-        topLevelKeys:
-          data && typeof data === "object"
-            ? Object.keys(data)
-            : [],
-        preview: data
+      const count = (word) => {
+        return (html.match(new RegExp(word, "gi")) || []).length;
       };
 
-      return new Response(JSON.stringify(result, null, 2), {
-        headers: {
-          "content-type": "application/json; charset=UTF-8"
+      return new Response(
+        JSON.stringify(
+          {
+            ok: response.ok,
+            status: response.status,
+            finalUrl: response.url,
+            contentType: response.headers.get("content-type"),
+            htmlLength: html.length,
+
+            title: titleMatch
+              ? titleMatch[1].replace(/\s+/g, " ").trim()
+              : null,
+
+            keywordCounts: {
+              beyblade: count("beyblade"),
+              戰鬥陀螺: count("戰鬥陀螺"),
+              加入購物車: count("加入購物車"),
+              售完: count("售完"),
+              soldOut: count("sold.?out"),
+              product: count("product")
+            },
+
+            preview: html
+              .slice(0, 4000)
+              .replace(/\s+/g, " ")
+          },
+          null,
+          2
+        ),
+        {
+          headers: {
+            "content-type": "application/json; charset=UTF-8"
+          }
         }
-      });
+      );
 
     } catch (error) {
       return Response.json({
@@ -51,6 +64,6 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log("Funbox diagnostic cron triggered");
+    console.log("Funbox HTML diagnostic cron triggered");
   }
 };
