@@ -8,6 +8,13 @@
     "crons": ["* * * * *"]
   },
 
+  "kv_namespaces": [
+    {
+      "binding": "STOCK_KV",
+      "id": "315a3c0cec82461da7f1827ab973a4d6"
+    }
+  ],
+
   "observability": {
     "enabled": true,
     "logs": {
