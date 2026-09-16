@@ -13,44 +13,91 @@ export default {
 
       const html = await response.text();
 
-      const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      function getSnippets(keyword, max = 8) {
+        const results = [];
+        let start = 0;
 
-      const count = (word) => {
-        return (html.match(new RegExp(word, "gi")) || []).length;
-      };
+        while (results.length < max) {
+          const index = html.indexOf(keyword, start);
+
+          if (index === -1) break;
+
+          const from = Math.max(0, index - 700);
+          const to = Math.min(html.length, index + 1200);
+
+          results.push(
+            html
+              .slice(from, to)
+              .replace(/\s+/g, " ")
+          );
+
+          start = index + keyword.length;
+        }
+
+        return results;
+      }
+
+      const productLinks = [];
+      const linkRegex =
+        /href=["']([^"']*\/products\/[^"'?#]+)["']/gi;
+
+      let match;
+
+      while (
+        (match = linkRegex.exec(html)) !== null &&
+        productLinks.length < 30
+      ) {
+        let link = match[1];
+
+        if (link.startsWith("/")) {
+          link = "https://shop.funbox.com.tw" + link;
+        }
+
+        if (!productLinks.includes(link)) {
+          productLinks.push(link);
+        }
+      }
+
+      const productIds = [];
+      const idRegex =
+        /(?:product[_-]?id|data-product-id)["'=:\s]+(\d{5,})/gi;
+
+      while (
+        (match = idRegex.exec(html)) !== null &&
+        productIds.length < 30
+      ) {
+        if (!productIds.includes(match[1])) {
+          productIds.push(match[1]);
+        }
+      }
 
       return new Response(
         JSON.stringify(
           {
             ok: response.ok,
             status: response.status,
-            finalUrl: response.url,
-            contentType: response.headers.get("content-type"),
             htmlLength: html.length,
 
-            title: titleMatch
-              ? titleMatch[1].replace(/\s+/g, " ").trim()
-              : null,
+            productLinksFound: productLinks.length,
+            productLinks,
 
-            keywordCounts: {
-              beyblade: count("beyblade"),
-              戰鬥陀螺: count("戰鬥陀螺"),
-              加入購物車: count("加入購物車"),
-              售完: count("售完"),
-              soldOut: count("sold.?out"),
-              product: count("product")
-            },
+            productIdsFound: productIds.length,
+            productIds,
 
-            preview: html
-              .slice(0, 4000)
-              .replace(/\s+/g, " ")
+            snippets: {
+              addToCart: getSnippets("加入購物車"),
+              soldOutChinese: getSnippets("售完"),
+              productId: getSnippets("product_id"),
+              productsPath: getSnippets("/products/")
+            }
           },
           null,
           2
         ),
         {
           headers: {
-            "content-type": "application/json; charset=UTF-8"
+            "content-type":
+              "application/json; charset=UTF-8"
           }
         }
       );
@@ -64,6 +111,8 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log("Funbox HTML diagnostic cron triggered");
+    console.log(
+      "Funbox product structure diagnostic triggered"
+    );
   }
 };
