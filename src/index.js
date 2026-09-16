@@ -13,61 +13,43 @@ export default {
 
       const html = await response.text();
 
-      function getSnippets(keyword, max = 8) {
+      function snippets(keyword, before = 1000, after = 1800, max = 5) {
         const results = [];
-        let start = 0;
+        let position = 0;
 
         while (results.length < max) {
-          const index = html.indexOf(keyword, start);
+          const index = html.indexOf(keyword, position);
 
           if (index === -1) break;
 
-          const from = Math.max(0, index - 700);
-          const to = Math.min(html.length, index + 1200);
-
           results.push(
             html
-              .slice(from, to)
+              .slice(
+                Math.max(0, index - before),
+                Math.min(html.length, index + after)
+              )
               .replace(/\s+/g, " ")
           );
 
-          start = index + keyword.length;
+          position = index + keyword.length;
         }
 
         return results;
       }
 
-      const productLinks = [];
-      const linkRegex =
-        /href=["']([^"']*\/products\/[^"'?#]+)["']/gi;
+      const jsonUrls = [];
+
+      const urlRegex =
+        /https?:\/\/[^"'\\\s<>]+\.json[^"'\\\s<>]*/gi;
 
       let match;
 
       while (
-        (match = linkRegex.exec(html)) !== null &&
-        productLinks.length < 30
+        (match = urlRegex.exec(html)) !== null &&
+        jsonUrls.length < 30
       ) {
-        let link = match[1];
-
-        if (link.startsWith("/")) {
-          link = "https://shop.funbox.com.tw" + link;
-        }
-
-        if (!productLinks.includes(link)) {
-          productLinks.push(link);
-        }
-      }
-
-      const productIds = [];
-      const idRegex =
-        /(?:product[_-]?id|data-product-id)["'=:\s]+(\d{5,})/gi;
-
-      while (
-        (match = idRegex.exec(html)) !== null &&
-        productIds.length < 30
-      ) {
-        if (!productIds.includes(match[1])) {
-          productIds.push(match[1]);
+        if (!jsonUrls.includes(match[0])) {
+          jsonUrls.push(match[0]);
         }
       }
 
@@ -78,18 +60,22 @@ export default {
             status: response.status,
             htmlLength: html.length,
 
-            productLinksFound: productLinks.length,
-            productLinks,
+            knownProductId: {
+              id: "69274378",
+              found: html.includes("69274378"),
+              snippets: snippets("69274378", 1500, 2500, 3)
+            },
 
-            productIdsFound: productIds.length,
-            productIds,
+            dataLoadingClues: {
+              isAvailable: snippets("isAvailable"),
+              axios: snippets("axios"),
+              fetch: snippets("fetch("),
+              ajax: snippets("ajax"),
+              dotJson: snippets(".json")
+            },
 
-            snippets: {
-              addToCart: getSnippets("加入購物車"),
-              soldOutChinese: getSnippets("售完"),
-              productId: getSnippets("product_id"),
-              productsPath: getSnippets("/products/")
-            }
+            jsonUrlsFound: jsonUrls.length,
+            jsonUrls
           },
           null,
           2
@@ -112,7 +98,7 @@ export default {
 
   async scheduled(event, env, ctx) {
     console.log(
-      "Funbox product structure diagnostic triggered"
+      "Funbox data-source diagnostic cron triggered"
     );
   }
 };
