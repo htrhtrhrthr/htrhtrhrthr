@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env, ctx) {
     const url =
-      "https://shop.funbox.com.tw/collections/all";
+      "https://shop.funbox.com.tw/products/bbpr08914";
 
     try {
       const response = await fetch(url, {
@@ -17,7 +17,7 @@ export default {
         return (html.match(new RegExp(keyword, "gi")) || []).length;
       }
 
-      function snippets(keyword, before = 700, after = 1600, max = 5) {
+      function snippets(keyword, before = 700, after = 1800, max = 5) {
         const results = [];
         let position = 0;
 
@@ -50,18 +50,23 @@ export default {
             htmlLength: html.length,
 
             keywordCounts: {
-              所有商品: count("所有商品"),
+              bbpr08914: count("bbpr08914"),
+              CX00: count("CX-00"),
+              APP兌換: count("APP兌換"),
               加入購物車: count("加入購物車"),
               售完: count("售完"),
-              product: count("product"),
-              NT: count("NT\\$")
+              isAvailable: count("isAvailable"),
+              inventory_quantity: count("inventory_quantity"),
+              variants: count("variants"),
+              product: count("product")
             },
 
             snippets: {
-              所有商品: snippets("所有商品"),
+              CX00: snippets("CX-00"),
               加入購物車: snippets("加入購物車"),
-              售完: snippets("售完"),
-              product: snippets("product")
+              isAvailable: snippets("isAvailable"),
+              inventory_quantity: snippets("inventory_quantity"),
+              variants: snippets("variants")
             }
           },
           null,
@@ -84,6 +89,6 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log("Funbox collections-all diagnostic triggered");
+    console.log("Funbox product-page diagnostic triggered");
   }
 };
