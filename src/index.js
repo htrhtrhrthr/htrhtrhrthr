@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env, ctx) {
     const url =
-      "https://shop.funbox.com.tw/search?q=%E6%88%B0%E9%AC%A5%E9%99%80%E8%9E%BA&sort_by=sell_from-desc";
+      "https://shop.funbox.com.tw/collections/all";
 
     try {
       const response = await fetch(url, {
@@ -50,18 +50,18 @@ export default {
             htmlLength: html.length,
 
             keywordCounts: {
-              戰鬥陀螺: count("戰鬥陀螺"),
+              所有商品: count("所有商品"),
               加入購物車: count("加入購物車"),
               售完: count("售完"),
-              CX00: count("CX-00"),
-              APP兌換: count("APP兌換")
+              product: count("product"),
+              NT: count("NT\\$")
             },
 
             snippets: {
-              戰鬥陀螺: snippets("戰鬥陀螺"),
+              所有商品: snippets("所有商品"),
               加入購物車: snippets("加入購物車"),
-              CX00: snippets("CX-00"),
-              NT999999: snippets("999999")
+              售完: snippets("售完"),
+              product: snippets("product")
             }
           },
           null,
@@ -69,7 +69,8 @@ export default {
         ),
         {
           headers: {
-            "content-type": "application/json; charset=UTF-8"
+            "content-type":
+              "application/json; charset=UTF-8"
           }
         }
       );
@@ -83,6 +84,6 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log("Funbox search-page diagnostic triggered");
+    console.log("Funbox collections-all diagnostic triggered");
   }
 };
