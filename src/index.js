@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env, ctx) {
     const url =
-      "https://shop.funbox.com.tw/categories/takaratomy/beyblade";
+      "https://shop.funbox.com.tw/search?q=%E6%88%B0%E9%AC%A5%E9%99%80%E8%9E%BA&sort_by=sell_from-desc";
 
     try {
       const response = await fetch(url, {
@@ -13,7 +13,11 @@ export default {
 
       const html = await response.text();
 
-      function snippets(keyword, before = 1000, after = 1800, max = 5) {
+      function count(keyword) {
+        return (html.match(new RegExp(keyword, "gi")) || []).length;
+      }
+
+      function snippets(keyword, before = 700, after = 1600, max = 5) {
         const results = [];
         let position = 0;
 
@@ -37,53 +41,35 @@ export default {
         return results;
       }
 
-      const jsonUrls = [];
-
-      const urlRegex =
-        /https?:\/\/[^"'\\\s<>]+\.json[^"'\\\s<>]*/gi;
-
-      let match;
-
-      while (
-        (match = urlRegex.exec(html)) !== null &&
-        jsonUrls.length < 30
-      ) {
-        if (!jsonUrls.includes(match[0])) {
-          jsonUrls.push(match[0]);
-        }
-      }
-
       return new Response(
         JSON.stringify(
           {
             ok: response.ok,
             status: response.status,
+            finalUrl: response.url,
             htmlLength: html.length,
 
-            knownProductId: {
-              id: "69274378",
-              found: html.includes("69274378"),
-              snippets: snippets("69274378", 1500, 2500, 3)
+            keywordCounts: {
+              戰鬥陀螺: count("戰鬥陀螺"),
+              加入購物車: count("加入購物車"),
+              售完: count("售完"),
+              CX00: count("CX-00"),
+              APP兌換: count("APP兌換")
             },
 
-            dataLoadingClues: {
-              isAvailable: snippets("isAvailable"),
-              axios: snippets("axios"),
-              fetch: snippets("fetch("),
-              ajax: snippets("ajax"),
-              dotJson: snippets(".json")
-            },
-
-            jsonUrlsFound: jsonUrls.length,
-            jsonUrls
+            snippets: {
+              戰鬥陀螺: snippets("戰鬥陀螺"),
+              加入購物車: snippets("加入購物車"),
+              CX00: snippets("CX-00"),
+              NT999999: snippets("999999")
+            }
           },
           null,
           2
         ),
         {
           headers: {
-            "content-type":
-              "application/json; charset=UTF-8"
+            "content-type": "application/json; charset=UTF-8"
           }
         }
       );
@@ -97,8 +83,6 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log(
-      "Funbox data-source diagnostic cron triggered"
-    );
+    console.log("Funbox search-page diagnostic triggered");
   }
 };
