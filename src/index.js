@@ -5,10 +5,15 @@ export default {
 
     try {
       const response = await fetch(url, {
+        method: "GET",
         redirect: "manual",
         headers: {
-          "Accept": "text/html,application/xhtml+xml"
-        }
+          "User-Agent":
+            "FunboxStockMonitor/1.0 (private personal stock check)",
+          "Accept":
+            "text/html,text/plain;q=0.9"
+        },
+        signal: AbortSignal.timeout(20000)
       });
 
       const body = await response.text();
@@ -19,14 +24,14 @@ export default {
             status: response.status,
             ok: response.ok,
             statusText: response.statusText,
-
             location: response.headers.get("location"),
             retryAfter: response.headers.get("retry-after"),
-            server: response.headers.get("server"),
-            cfRay: response.headers.get("cf-ray"),
             contentType: response.headers.get("content-type"),
-
             bodyLength: body.length,
+            containsProductId: body.includes("69274378"),
+            containsVariantId: body.includes("84404918"),
+            containsInventoryStatus:
+              body.includes("inventory_quantity_status"),
             bodyPreview: body
               .slice(0, 1200)
               .replace(/\s+/g, " ")
@@ -51,6 +56,8 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    console.log("Funbox redirect diagnostic triggered");
+    console.log(
+      "Funbox User-Agent diagnostic triggered"
+    );
   }
 };
